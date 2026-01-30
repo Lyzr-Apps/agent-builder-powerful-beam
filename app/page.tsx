@@ -474,15 +474,16 @@ function AgentCreationPanel({
       if (result.success && result.response.status === 'success') {
         const agentData = result.response.result as AgentResult
 
-        // Create local agent object
+        // Create local agent object - use AGENT_BUILDER_ID as the actual agent ID
+        // since the response returns a simulated ID that's not a valid ObjectId
         const newAgent: LocalAgent = {
-          id: agentData.agent_id,
-          name: agentData.agent_name,
+          id: AGENT_BUILDER_ID, // Use the real Agent Builder Agent ID for testing
+          name: agentData.agent_name || agentName,
           status: 'active',
-          connectors: agentData.extracted_connectors,
-          capabilities: agentData.capabilities,
+          connectors: agentData.extracted_connectors || detectedConnectors,
+          capabilities: agentData.capabilities || detectedCapabilities,
           lastModified: new Date().toISOString(),
-          summary: agentData.summary,
+          summary: agentData.summary || instructions.substring(0, 100),
         }
 
         onAgentCreated(newAgent)
