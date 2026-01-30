@@ -1,0 +1,43 @@
+{
+  "agent_name": "General Chat Assistant",
+  "agent_id": "697d3787066158e77fde4f85",
+  "agent_purpose": "assistant",
+  "description": "Returns natural conversational responses for general chat and assistance",
+  "response_schema": {
+    "status": "string (success|error)",
+    "result": {
+      "response": "string",
+      "action_taken": "string (optional)",
+      "data": "object (optional, any structured data)",
+      "suggestions": [
+        "string (optional)"
+      ]
+    },
+    "metadata": {
+      "agent_name": "string",
+      "timestamp": "string (ISO)"
+    }
+  },
+  "example_response": {
+    "status": "success",
+    "result": {
+      "response": "I've completed the task you requested",
+      "action_taken": "Processed the input and generated output",
+      "data": {
+        "key": "value"
+      },
+      "suggestions": [
+        "You might also want to try X"
+      ]
+    },
+    "metadata": {
+      "agent_name": "General Chat Assistant",
+      "timestamp": "2025-01-15T10:30:00Z"
+    }
+  },
+  "is_actual_tested": false,
+  "test_timestamp": null,
+  "test_message_used": "Hello, provide a sample response",
+  "raw_test_response": "Hello there! I'm happy to help you today. As a friendly AI assistant, I'm ready to engage in conversation, answer questions, or help with various tasks. \n\nIs there anything specific you'd like to discuss or any way I can assist you? I'm knowledgeable about a wide range of topics and always aim to provide clear, helpful, and friendly responses. Feel free to ask me anything!",
+  "test_error": "Response not valid JSON: Expecting value: line 1 column 1 (char 0)"
+}

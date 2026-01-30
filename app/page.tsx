@@ -49,8 +49,9 @@ import {
 import { callAIAgent } from '@/lib/aiAgent'
 import type { NormalizedAgentResponse } from '@/lib/aiAgent'
 
-// Agent ID from workflow
-const AGENT_BUILDER_ID = "697d331ed36f070193f5c929"
+// Agent IDs from workflow
+const AGENT_BUILDER_ID = "697d331ed36f070193f5c929" // For creating agents
+const CHAT_ASSISTANT_ID = "697d3787066158e77fde4f85" // For testing/chatting with agents
 
 // TypeScript interfaces based on actual_test_response
 interface AgentConfiguration {
@@ -186,7 +187,8 @@ function AgentChatPanel({
     setLoading(true)
 
     try {
-      const result = await callAIAgent(inputMessage, agent.id, {
+      // Use CHAT_ASSISTANT_ID for all chat interactions instead of agent.id
+      const result = await callAIAgent(inputMessage, CHAT_ASSISTANT_ID, {
         session_id: sessionId,
         user_id: 'user-1',
       })
@@ -474,10 +476,10 @@ function AgentCreationPanel({
       if (result.success && result.response.status === 'success') {
         const agentData = result.response.result as AgentResult
 
-        // Create local agent object - use AGENT_BUILDER_ID as the actual agent ID
+        // Create local agent object - use CHAT_ASSISTANT_ID for testing
         // since the response returns a simulated ID that's not a valid ObjectId
         const newAgent: LocalAgent = {
-          id: AGENT_BUILDER_ID, // Use the real Agent Builder Agent ID for testing
+          id: CHAT_ASSISTANT_ID, // Use the General Chat Assistant for testing
           name: agentData.agent_name || agentName,
           status: 'active',
           connectors: agentData.extracted_connectors || detectedConnectors,
