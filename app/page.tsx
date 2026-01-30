@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -44,6 +44,7 @@ import {
   Calendar,
   Users,
   Cloud,
+  Send,
 } from 'lucide-react'
 import { callAIAgent } from '@/lib/aiAgent'
 import type { NormalizedAgentResponse } from '@/lib/aiAgent'
@@ -88,6 +89,14 @@ interface LocalAgent {
   summary: string
 }
 
+// Chat message structure
+interface ChatMessage {
+  id: string
+  role: 'user' | 'agent'
+  content: string
+  timestamp: string
+}
+
 // Connector data structure
 interface Connector {
   id: string
@@ -130,6 +139,245 @@ const getConnectorColor = (service: string) => {
     c.name.toLowerCase().includes(service.toLowerCase().replace('@', ''))
   )
   return connector?.color || 'bg-gray-500'
+}
+
+// Agent Chat Panel Component
+function AgentChatPanel({
+  isOpen,
+  onClose,
+  agent
+}: {
+  isOpen: boolean
+  onClose: () => void
+  agent: LocalAgent | null
+}) {
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [inputMessage, setInputMessage] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [sessionId] = useState(() => `session-${Date.now()}`)
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
+    }
+  }, [messages])
+
+  // Reset messages when agent changes
+  useEffect(() => {
+    if (agent) {
+      setMessages([])
+    }
+  }, [agent?.id])
+
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || !agent || loading) return
+
+    const userMessage: ChatMessage = {
+      id: `msg-${Date.now()}`,
+      role: 'user',
+      content: inputMessage,
+      timestamp: new Date().toISOString(),
+    }
+
+    setMessages(prev => [...prev, userMessage])
+    setInputMessage('')
+    setLoading(true)
+
+    try {
+      const result = await callAIAgent(inputMessage, agent.id, {
+        session_id: sessionId,
+        user_id: 'user-1',
+      })
+
+      let agentContent = ''
+      if (result.success && result.response.status === 'success') {
+        // Extract text from various possible fields
+        if (result.response.message) {
+          agentContent = result.response.message
+        } else if (result.response.result?.text) {
+          agentContent = result.response.result.text
+        } else if (result.response.result?.answer) {
+          agentContent = result.response.result.answer
+        } else if (result.response.result?.response) {
+          agentContent = result.response.result.response
+        } else if (typeof result.response.result === 'string') {
+          agentContent = result.response.result
+        } else {
+          agentContent = JSON.stringify(result.response.result, null, 2)
+        }
+      } else {
+        agentContent = result.response?.message || result.error || 'No response from agent'
+      }
+
+      const agentMessage: ChatMessage = {
+        id: `msg-${Date.now()}-agent`,
+        role: 'agent',
+        content: agentContent,
+        timestamp: new Date().toISOString(),
+      }
+
+      setMessages(prev => [...prev, agentMessage])
+    } catch (error) {
+      const errorMessage: ChatMessage = {
+        id: `msg-${Date.now()}-error`,
+        role: 'agent',
+        content: 'Error: Failed to communicate with agent',
+        timestamp: new Date().toISOString(),
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
+    }
+  }
+
+  if (!isOpen || !agent) return null
+
+  return (
+    <div className="fixed inset-y-0 right-0 w-[480px] bg-white border-l border-gray-200 shadow-2xl z-50 flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gray-50">
+        <div className="flex items-center gap-3">
+          <div className="bg-blue-600 p-2 rounded-lg">
+            <MessageSquare className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">{agent.name}</h2>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge
+                variant={agent.status === 'active' ? 'default' : 'secondary'}
+                className={
+                  agent.status === 'active'
+                    ? 'bg-green-100 text-green-700 border-green-200'
+                    : 'bg-gray-200 text-gray-600'
+                }
+              >
+                {agent.status === 'active' ? (
+                  <>
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    Active
+                  </>
+                ) : (
+                  'Inactive'
+                )}
+              </Badge>
+            </div>
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+        >
+          <X className="h-5 w-5" />
+        </Button>
+      </div>
+
+      {/* Chat Messages */}
+      <div className="flex-1 overflow-hidden flex flex-col">
+        <ScrollArea className="flex-1 p-6">
+          <div ref={scrollAreaRef} className="space-y-4">
+            {messages.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="bg-gray-100 p-6 rounded-full mb-4">
+                  <Bot className="h-12 w-12 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  Start a conversation
+                </h3>
+                <p className="text-sm text-gray-600 max-w-md">
+                  Send a message to test your agent. All conversations are isolated per session.
+                </p>
+              </div>
+            )}
+
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[80%] rounded-lg px-4 py-3 ${
+                    message.role === 'user'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-900'
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    {message.role === 'agent' && (
+                      <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-gray-600" />
+                    )}
+                    <div className="flex-1">
+                      <p className="text-sm whitespace-pre-wrap break-words">
+                        {message.content}
+                      </p>
+                      <p
+                        className={`text-xs mt-1 ${
+                          message.role === 'user'
+                            ? 'text-blue-100'
+                            : 'text-gray-500'
+                        }`}
+                      >
+                        {new Date(message.timestamp).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {loading && (
+              <div className="flex justify-start">
+                <div className="max-w-[80%] rounded-lg px-4 py-3 bg-gray-100">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-gray-600" />
+                    <span className="text-sm text-gray-600">Agent is typing...</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+
+        {/* Input Area */}
+        <div className="p-4 border-t border-gray-200 bg-gray-50">
+          <div className="flex gap-2">
+            <Input
+              value={inputMessage}
+              onChange={(e) => setInputMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Type your message..."
+              disabled={loading}
+              className="flex-1 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
+            />
+            <Button
+              onClick={handleSendMessage}
+              disabled={loading || !inputMessage.trim()}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            Press Enter to send, Shift+Enter for new line
+          </p>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // Agent Creation Slide-over Panel Component
@@ -258,15 +506,15 @@ function AgentCreationPanel({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-y-0 right-0 w-[480px] bg-gray-900 border-l border-gray-800 shadow-2xl z-50 flex flex-col">
+    <div className="fixed inset-y-0 right-0 w-[480px] bg-white border-l border-gray-200 shadow-2xl z-50 flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between p-6 border-b border-gray-800">
-        <h2 className="text-xl font-bold text-white">Create New Agent</h2>
+      <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gray-50">
+        <h2 className="text-xl font-bold text-gray-900">Create New Agent</h2>
         <Button
           variant="ghost"
           size="icon"
           onClick={onClose}
-          className="text-gray-400 hover:text-white"
+          className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
         >
           <X className="h-5 w-5" />
         </Button>
@@ -277,7 +525,7 @@ function AgentCreationPanel({
         <div className="space-y-6">
           {/* Agent Name */}
           <div className="space-y-2">
-            <Label htmlFor="agent-name" className="text-gray-300 font-semibold">
+            <Label htmlFor="agent-name" className="text-gray-900 font-semibold">
               Agent Name
             </Label>
             <Input
@@ -285,13 +533,13 @@ function AgentCreationPanel({
               value={agentName}
               onChange={(e) => setAgentName(e.target.value)}
               placeholder="My Awesome Agent"
-              className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+              className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
             />
           </div>
 
           {/* Instructions */}
           <div className="space-y-2 relative">
-            <Label htmlFor="instructions" className="text-gray-300 font-semibold">
+            <Label htmlFor="instructions" className="text-gray-900 font-semibold">
               Instructions
             </Label>
             <Textarea
@@ -299,19 +547,19 @@ function AgentCreationPanel({
               value={instructions}
               onChange={handleInstructionsChange}
               placeholder="Type @ to mention connectors. Example: Send a message to @Slack when..."
-              className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500 min-h-[200px] font-mono text-sm"
+              className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500 min-h-[200px] font-mono text-sm"
             />
 
             {/* Connector Autocomplete Dropdown */}
             {showConnectorDropdown && (
-              <div className="absolute left-0 right-0 mt-1 bg-gray-800 border border-gray-700 rounded-md shadow-lg z-10 max-h-48 overflow-auto">
+              <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-10 max-h-48 overflow-auto">
                 {AVAILABLE_CONNECTORS.map((connector) => {
                   const Icon = getConnectorIcon(connector.name)
                   return (
                     <button
                       key={connector.id}
                       onClick={() => insertConnector(connector.name)}
-                      className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-700 text-white"
+                      className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-100 text-gray-900"
                     >
                       <Icon className="h-4 w-4" />
                       <span>{connector.name}</span>
@@ -325,7 +573,7 @@ function AgentCreationPanel({
           {/* Detected Connectors */}
           {detectedConnectors.length > 0 && (
             <div className="space-y-2">
-              <Label className="text-gray-300 font-semibold">Detected Connectors</Label>
+              <Label className="text-gray-900 font-semibold">Detected Connectors</Label>
               <div className="flex flex-wrap gap-2">
                 {detectedConnectors.map((connector) => {
                   const Icon = getConnectorIcon(connector)
@@ -353,13 +601,13 @@ function AgentCreationPanel({
           {/* Detected Capabilities */}
           {detectedCapabilities.length > 0 && (
             <div className="space-y-2">
-              <Label className="text-gray-300 font-semibold">Auto-detected Capabilities</Label>
+              <Label className="text-gray-900 font-semibold">Auto-detected Capabilities</Label>
               <div className="flex flex-wrap gap-2">
                 {detectedCapabilities.map((capability) => (
                   <Badge
                     key={capability}
                     variant="outline"
-                    className="border-blue-500 text-blue-400 px-3 py-1"
+                    className="border-blue-500 text-blue-600 px-3 py-1"
                   >
                     <Zap className="h-3 w-3 mr-1" />
                     {capability.replace('_', ' ')}
@@ -371,20 +619,20 @@ function AgentCreationPanel({
 
           {/* Error Message */}
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-md">
-              <AlertCircle className="h-4 w-4 text-red-500" />
-              <p className="text-red-400 text-sm">{error}</p>
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-md">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <p className="text-red-600 text-sm">{error}</p>
             </div>
           )}
         </div>
       </ScrollArea>
 
       {/* Footer */}
-      <div className="p-6 border-t border-gray-800 flex gap-3">
+      <div className="p-6 border-t border-gray-200 bg-gray-50 flex gap-3">
         <Button
           variant="outline"
           onClick={onClose}
-          className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800"
+          className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-100"
         >
           Cancel
         </Button>
@@ -422,10 +670,10 @@ function ConnectorSetupModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-md">
+      <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-md">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">Connect Service</DialogTitle>
-          <DialogDescription className="text-gray-400">
+          <DialogDescription className="text-gray-600">
             Select a service to connect to your agents
           </DialogDescription>
         </DialogHeader>
@@ -440,14 +688,14 @@ function ConnectorSetupModal({
                 onClick={() => setSelectedService(connector.id)}
                 className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
                   isSelected
-                    ? 'border-blue-500 bg-blue-500/10'
-                    : 'border-gray-700 hover:border-gray-600 bg-gray-800'
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-gray-300 hover:border-gray-400 bg-white'
                 }`}
               >
                 <div className={`${connector.color} p-3 rounded-lg`}>
                   <Icon className="h-6 w-6 text-white" />
                 </div>
-                <span className="text-xs text-gray-300">
+                <span className="text-xs text-gray-700">
                   {connector.name.replace('@', '')}
                 </span>
               </button>
@@ -456,12 +704,12 @@ function ConnectorSetupModal({
         </div>
 
         {selectedService && (
-          <div className="space-y-3 p-4 bg-gray-800 rounded-lg">
+          <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              <span className="text-sm text-gray-300">Ready to connect</span>
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <span className="text-sm text-gray-700">Ready to connect</span>
             </div>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-600">
               This will allow your agents to access and control this service on your behalf.
             </p>
           </div>
@@ -471,7 +719,7 @@ function ConnectorSetupModal({
           <Button
             variant="outline"
             onClick={onClose}
-            className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800"
+            className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-100"
           >
             Cancel
           </Button>
@@ -500,7 +748,7 @@ function AgentCard({
   onDelete: () => void
 }) {
   return (
-    <Card className="bg-gray-800 border-gray-700 hover:border-gray-600 transition-all">
+    <Card className="bg-white border-gray-200 hover:border-gray-300 transition-all shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -508,8 +756,8 @@ function AgentCard({
               <Bot className="h-5 w-5 text-white" />
             </div>
             <div>
-              <CardTitle className="text-white text-lg">{agent.name}</CardTitle>
-              <p className="text-xs text-gray-400 mt-1">
+              <CardTitle className="text-gray-900 text-lg">{agent.name}</CardTitle>
+              <p className="text-xs text-gray-500 mt-1">
                 Modified {new Date(agent.lastModified).toLocaleDateString()}
               </p>
             </div>
@@ -519,8 +767,8 @@ function AgentCard({
               variant={agent.status === 'active' ? 'default' : 'secondary'}
               className={
                 agent.status === 'active'
-                  ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                  : 'bg-gray-700 text-gray-400'
+                  ? 'bg-green-100 text-green-700 border-green-200'
+                  : 'bg-gray-200 text-gray-600'
               }
             >
               {agent.status === 'active' ? (
@@ -537,29 +785,29 @@ function AgentCard({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-gray-400 hover:text-white"
+                  className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                 >
                   <MoreVertical className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-gray-800 border-gray-700 text-white">
+              <DropdownMenuContent className="bg-white border-gray-200 text-gray-900">
                 <DropdownMenuItem
                   onClick={onEdit}
-                  className="hover:bg-gray-700 cursor-pointer"
+                  className="hover:bg-gray-100 cursor-pointer"
                 >
                   <Edit className="h-4 w-4 mr-2" />
                   Edit
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={onTest}
-                  className="hover:bg-gray-700 cursor-pointer"
+                  className="hover:bg-gray-100 cursor-pointer"
                 >
                   <Play className="h-4 w-4 mr-2" />
                   Test
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={onDelete}
-                  className="hover:bg-gray-700 cursor-pointer text-red-400"
+                  className="hover:bg-gray-100 cursor-pointer text-red-600"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete
@@ -570,7 +818,7 @@ function AgentCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-sm text-gray-400">{agent.summary}</p>
+        <p className="text-sm text-gray-600">{agent.summary}</p>
 
         {/* Connectors */}
         {agent.connectors.length > 0 && (
@@ -598,13 +846,13 @@ function AgentCard({
               <Badge
                 key={capability}
                 variant="outline"
-                className="border-gray-700 text-gray-400 text-xs"
+                className="border-gray-300 text-gray-600 text-xs"
               >
                 {capability.replace('_', ' ')}
               </Badge>
             ))}
             {agent.capabilities.length > 3 && (
-              <Badge variant="outline" className="border-gray-700 text-gray-400 text-xs">
+              <Badge variant="outline" className="border-gray-300 text-gray-600 text-xs">
                 +{agent.capabilities.length - 3}
               </Badge>
             )}
@@ -621,7 +869,7 @@ function ConnectorCard({ connector }: { connector: Connector }) {
   const color = getConnectorColor(connector.service)
 
   return (
-    <Card className="bg-gray-800 border-gray-700">
+    <Card className="bg-white border-gray-200 shadow-sm">
       <CardContent className="pt-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -629,16 +877,16 @@ function ConnectorCard({ connector }: { connector: Connector }) {
               <Icon className="h-5 w-5 text-white" />
             </div>
             <div>
-              <h3 className="text-white font-semibold">{connector.service}</h3>
-              <p className="text-xs text-gray-400">{connector.account}</p>
+              <h3 className="text-gray-900 font-semibold">{connector.service}</h3>
+              <p className="text-xs text-gray-500">{connector.account}</p>
             </div>
           </div>
           <Badge
             variant={connector.status === 'connected' ? 'default' : 'secondary'}
             className={
               connector.status === 'connected'
-                ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                : 'bg-gray-700 text-gray-400'
+                ? 'bg-green-100 text-green-700 border-green-200'
+                : 'bg-gray-200 text-gray-600'
             }
           >
             {connector.status === 'connected' ? (
@@ -654,7 +902,7 @@ function ConnectorCard({ connector }: { connector: Connector }) {
         <Button
           variant="outline"
           size="sm"
-          className="w-full mt-4 border-gray-700 text-gray-300 hover:bg-gray-700"
+          className="w-full mt-4 border-gray-300 text-gray-700 hover:bg-gray-100"
         >
           Disconnect
         </Button>
@@ -675,11 +923,11 @@ function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className="bg-gray-800 p-6 rounded-full mb-4">
-        <Bot className="h-12 w-12 text-gray-600" />
+      <div className="bg-gray-100 p-6 rounded-full mb-4">
+        <Bot className="h-12 w-12 text-gray-400" />
       </div>
-      <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
-      <p className="text-sm text-gray-400 mb-4 max-w-md">{description}</p>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+      <p className="text-sm text-gray-600 mb-4 max-w-md">{description}</p>
       {action && (
         <Button onClick={action} className="bg-blue-600 hover:bg-blue-700 text-white">
           <Plus className="h-4 w-4 mr-2" />
@@ -712,6 +960,8 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('')
   const [showAgentPanel, setShowAgentPanel] = useState(false)
   const [showConnectorModal, setShowConnectorModal] = useState(false)
+  const [showChatPanel, setShowChatPanel] = useState(false)
+  const [selectedAgent, setSelectedAgent] = useState<LocalAgent | null>(null)
 
   const filteredAgents = agents.filter(agent =>
     agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -726,10 +976,20 @@ export default function Home() {
     setAgents(prev => prev.filter(a => a.id !== agentId))
   }
 
+  const handleTestAgent = (agent: LocalAgent) => {
+    setSelectedAgent(agent)
+    setShowChatPanel(true)
+  }
+
+  const handleCloseChatPanel = () => {
+    setShowChatPanel(false)
+    setSelectedAgent(null)
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-50">
       {/* Header */}
-      <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-40">
+      <header className="border-b border-gray-200 bg-white/80 backdrop-blur-sm sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -737,18 +997,18 @@ export default function Home() {
                 <Bot className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white">Agent Builder Studio</h1>
-                <p className="text-xs text-gray-400">Build AI agents with natural language</p>
+                <h1 className="text-xl font-bold text-gray-900">Agent Builder Studio</h1>
+                <p className="text-xs text-gray-600">Build AI agents with natural language</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
                 <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search agents..."
-                  className="pl-9 w-64 bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                  className="pl-9 w-64 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
                 />
               </div>
               <Button
@@ -770,15 +1030,15 @@ export default function Home() {
           <div className="col-span-12 lg:col-span-7">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-lg font-bold text-white">My Agents</h2>
-                <p className="text-sm text-gray-400">
+                <h2 className="text-lg font-bold text-gray-900">My Agents</h2>
+                <p className="text-sm text-gray-600">
                   {agents.length} {agents.length === 1 ? 'agent' : 'agents'} created
                 </p>
               </div>
               <Button
                 variant="outline"
                 size="sm"
-                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="border-gray-300 text-gray-700 hover:bg-gray-100"
               >
                 <Settings className="h-4 w-4 mr-2" />
                 Filter
@@ -786,7 +1046,7 @@ export default function Home() {
             </div>
 
             {filteredAgents.length === 0 ? (
-              <Card className="bg-gray-800/50 border-gray-700">
+              <Card className="bg-white border-gray-200 shadow-sm">
                 <CardContent className="p-0">
                   <EmptyState
                     title="No agents yet"
@@ -802,7 +1062,7 @@ export default function Home() {
                     key={agent.id}
                     agent={agent}
                     onEdit={() => {}}
-                    onTest={() => {}}
+                    onTest={() => handleTestAgent(agent)}
                     onDelete={() => handleDeleteAgent(agent.id)}
                   />
                 ))}
@@ -814,8 +1074,8 @@ export default function Home() {
           <div className="col-span-12 lg:col-span-5">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-lg font-bold text-white">Connectors</h2>
-                <p className="text-sm text-gray-400">
+                <h2 className="text-lg font-bold text-gray-900">Connectors</h2>
+                <p className="text-sm text-gray-600">
                   {connectors.filter(c => c.status === 'connected').length} connected
                 </p>
               </div>
@@ -823,7 +1083,7 @@ export default function Home() {
                 onClick={() => setShowConnectorModal(true)}
                 variant="outline"
                 size="sm"
-                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                className="border-gray-300 text-gray-700 hover:bg-gray-100"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add
@@ -838,7 +1098,7 @@ export default function Home() {
 
             {/* Available Connectors */}
             <div className="mt-6">
-              <h3 className="text-sm font-semibold text-gray-400 mb-3">Available Services</h3>
+              <h3 className="text-sm font-semibold text-gray-600 mb-3">Available Services</h3>
               <div className="grid grid-cols-4 gap-2">
                 {AVAILABLE_CONNECTORS.filter(
                   ac => !connectors.some(c => c.service === ac.name)
@@ -848,12 +1108,12 @@ export default function Home() {
                     <button
                       key={connector.id}
                       onClick={() => setShowConnectorModal(true)}
-                      className="flex flex-col items-center gap-2 p-3 rounded-lg bg-gray-800 border border-gray-700 hover:border-gray-600 transition-all"
+                      className="flex flex-col items-center gap-2 p-3 rounded-lg bg-white border border-gray-200 hover:border-gray-300 transition-all"
                     >
                       <div className={`${connector.color} p-2 rounded-lg`}>
                         <Icon className="h-4 w-4 text-white" />
                       </div>
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-gray-600">
                         {connector.name.replace('@', '')}
                       </span>
                     </button>
@@ -872,17 +1132,27 @@ export default function Home() {
         onAgentCreated={handleAgentCreated}
       />
 
+      {/* Agent Chat Panel */}
+      <AgentChatPanel
+        isOpen={showChatPanel}
+        onClose={handleCloseChatPanel}
+        agent={selectedAgent}
+      />
+
       {/* Connector Setup Modal */}
       <ConnectorSetupModal
         isOpen={showConnectorModal}
         onClose={() => setShowConnectorModal(false)}
       />
 
-      {/* Backdrop for slide-over */}
-      {showAgentPanel && (
+      {/* Backdrop for slide-over panels */}
+      {(showAgentPanel || showChatPanel) && (
         <div
-          className="fixed inset-0 bg-black/50 z-40"
-          onClick={() => setShowAgentPanel(false)}
+          className="fixed inset-0 bg-black/20 z-40"
+          onClick={() => {
+            setShowAgentPanel(false)
+            setShowChatPanel(false)
+          }}
         />
       )}
     </div>
