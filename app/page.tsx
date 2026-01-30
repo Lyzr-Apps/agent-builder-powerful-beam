@@ -116,12 +116,6 @@ interface Connector {
 // Available connector services with icons
 const AVAILABLE_CONNECTORS = [
   { id: 'slack', name: '@Slack', icon: 'MessageSquare', color: 'bg-purple-500' },
-  { id: 'gmail', name: '@Gmail', icon: 'Mail', color: 'bg-red-500' },
-  { id: 'notion', name: '@Notion', icon: 'FileText', color: 'bg-gray-700' },
-  { id: 'calendar', name: '@Calendar', icon: 'Calendar', color: 'bg-blue-500' },
-  { id: 'drive', name: '@Drive', icon: 'Database', color: 'bg-yellow-500' },
-  { id: 'teams', name: '@Teams', icon: 'Users', color: 'bg-indigo-500' },
-  { id: 'dropbox', name: '@Dropbox', icon: 'Cloud', color: 'bg-blue-600' },
 ]
 
 // Icon mapping
@@ -678,54 +672,47 @@ function ConnectorSetupModal({
   isOpen: boolean
   onClose: () => void
 }) {
-  const [selectedService, setSelectedService] = useState<string | null>(null)
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-white border-gray-200 text-gray-900 max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">Connect Service</DialogTitle>
+          <DialogTitle className="text-xl font-bold">Slack Integration</DialogTitle>
           <DialogDescription className="text-gray-600">
-            Select a service to connect to your agents
+            Connect Slack to your agents to send messages, read channels, and more
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-3 gap-3 py-4">
-          {AVAILABLE_CONNECTORS.map((connector) => {
-            const Icon = getConnectorIcon(connector.name)
-            const isSelected = selectedService === connector.id
-            return (
-              <button
-                key={connector.id}
-                onClick={() => setSelectedService(connector.id)}
-                className={`flex flex-col items-center gap-2 p-4 rounded-lg border-2 transition-all ${
-                  isSelected
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-300 hover:border-gray-400 bg-white'
-                }`}
-              >
-                <div className={`${connector.color} p-3 rounded-lg`}>
-                  <Icon className="h-6 w-6 text-white" />
-                </div>
-                <span className="text-xs text-gray-700">
-                  {connector.name.replace('@', '')}
-                </span>
-              </button>
-            )
-          })}
-        </div>
+        <div className="py-4">
+          <div className="flex flex-col items-center gap-4 p-6 rounded-lg border-2 border-purple-200 bg-purple-50">
+            <div className="bg-purple-500 p-4 rounded-lg">
+              <MessageSquare className="h-8 w-8 text-white" />
+            </div>
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">Slack</h3>
+              <p className="text-sm text-gray-600">Communication & Messaging</p>
+            </div>
+          </div>
 
-        {selectedService && (
-          <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
+          <div className="mt-4 space-y-3 p-4 bg-gray-50 rounded-lg">
             <div className="flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-green-600" />
-              <span className="text-sm text-gray-700">Ready to connect</span>
+              <span className="text-sm text-gray-700">OAuth Authentication Built-in</span>
             </div>
             <p className="text-xs text-gray-600">
-              This will allow your agents to access and control this service on your behalf.
+              Your agents will automatically handle Slack authentication when needed. No manual OAuth setup required.
             </p>
           </div>
-        )}
+
+          <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 className="text-xs font-semibold text-blue-900 mb-2">Capabilities</h4>
+            <ul className="space-y-1 text-xs text-blue-800">
+              <li>• Send messages to channels</li>
+              <li>• Read channel messages</li>
+              <li>• List team channels</li>
+              <li>• Manage conversations</li>
+            </ul>
+          </div>
+        </div>
 
         <div className="flex gap-3 pt-4">
           <Button
@@ -733,13 +720,13 @@ function ConnectorSetupModal({
             onClick={onClose}
             className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-100"
           >
-            Cancel
+            Close
           </Button>
           <Button
-            disabled={!selectedService}
+            onClick={onClose}
             className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
           >
-            Connect
+            Done
           </Button>
         </div>
       </DialogContent>
@@ -985,13 +972,6 @@ export default function Home() {
       account: 'workspace@company.com',
       icon: 'MessageSquare',
     },
-    {
-      id: '2',
-      service: '@Gmail',
-      status: 'connected',
-      account: 'user@gmail.com',
-      icon: 'Mail',
-    },
   ])
   const [searchQuery, setSearchQuery] = useState('')
   const [showAgentPanel, setShowAgentPanel] = useState(false)
@@ -1121,8 +1101,8 @@ export default function Home() {
                 size="sm"
                 className="border-gray-300 text-gray-700 hover:bg-gray-100"
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Add
+                <Settings className="h-4 w-4 mr-2" />
+                Info
               </Button>
             </div>
 
@@ -1132,31 +1112,35 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Available Connectors */}
-            <div className="mt-6">
-              <h3 className="text-sm font-semibold text-gray-600 mb-3">Available Services</h3>
-              <div className="grid grid-cols-4 gap-2">
-                {AVAILABLE_CONNECTORS.filter(
-                  ac => !connectors.some(c => c.service === ac.name)
-                ).map((connector) => {
-                  const Icon = getConnectorIcon(connector.name)
-                  return (
-                    <button
-                      key={connector.id}
-                      onClick={() => setShowConnectorModal(true)}
-                      className="flex flex-col items-center gap-2 p-3 rounded-lg bg-white border border-gray-200 hover:border-gray-300 transition-all"
-                    >
-                      <div className={`${connector.color} p-2 rounded-lg`}>
-                        <Icon className="h-4 w-4 text-white" />
-                      </div>
-                      <span className="text-xs text-gray-600">
-                        {connector.name.replace('@', '')}
-                      </span>
-                    </button>
-                  )
-                })}
+            {/* Available Connectors - Show if not all are connected */}
+            {AVAILABLE_CONNECTORS.filter(
+              ac => !connectors.some(c => c.service === ac.name)
+            ).length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-sm font-semibold text-gray-600 mb-3">Available Services</h3>
+                <div className="grid grid-cols-4 gap-2">
+                  {AVAILABLE_CONNECTORS.filter(
+                    ac => !connectors.some(c => c.service === ac.name)
+                  ).map((connector) => {
+                    const Icon = getConnectorIcon(connector.name)
+                    return (
+                      <button
+                        key={connector.id}
+                        onClick={() => setShowConnectorModal(true)}
+                        className="flex flex-col items-center gap-2 p-3 rounded-lg bg-white border border-gray-200 hover:border-gray-300 transition-all"
+                      >
+                        <div className={`${connector.color} p-2 rounded-lg`}>
+                          <Icon className="h-4 w-4 text-white" />
+                        </div>
+                        <span className="text-xs text-gray-600">
+                          {connector.name.replace('@', '')}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </main>
