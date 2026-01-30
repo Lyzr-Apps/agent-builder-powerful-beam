@@ -2,13 +2,16 @@
   "agent_name": "Agent Builder Agent",
   "agent_id": "697d331ed36f070193f5c929",
   "agent_purpose": "custom",
-  "description": "Agent Builder Agent response schema based on actual test results. Creates agents from natural language instructions and extracts connector references.",
+  "description": "Agent Builder Agent response schema. Creates agents from natural language instructions, extracts connector references, and generates complete agent configurations including role, goal, and system prompt.",
   "response_schema": {
     "status": "string",
     "result": {
       "agent_created": "boolean",
       "agent_id": "string",
       "agent_name": "string",
+      "agent_role": "string",
+      "agent_goal": "string",
+      "agent_instructions": "string",
       "extracted_connectors": [
         "string"
       ],
@@ -33,57 +36,42 @@
     "status": "success",
     "result": {
       "agent_created": true,
-      "agent_id": "sample12345",
-      "agent_name": "Sample Agent",
+      "agent_id": "placeholder_id",
+      "agent_name": "Customer Support Monitor",
+      "agent_role": "Customer Support Specialist",
+      "agent_goal": "Monitor customer support emails and provide timely responses while escalating urgent issues to Slack",
+      "agent_instructions": "You are a Customer Support Specialist AI agent. Your goal is to monitor customer support emails and provide timely responses while escalating urgent issues to Slack.\n\n## Your Role\n- Monitor incoming customer support emails via @Gmail\n- Automatically respond to common questions\n- Identify and escalate urgent issues to the team via @Slack\n\n## Tools Available\n- @Gmail: Use to read incoming support emails and send responses\n  * Check inbox every 15 minutes for new emails in support@company.com\n  * Auto-reply to FAQs using predefined templates\n  * Mark resolved emails as 'read' and apply 'Resolved' label\n  \n- @Slack: Use to notify team of urgent issues\n  * Post to #support channel when urgent issue detected\n  * Include customer email, issue summary, and priority level\n  * Use @here mention for critical issues only\n\n## Response Guidelines\n- Be professional, empathetic, and concise\n- Acknowledge customer's issue immediately\n- Provide clear next steps\n- Set expectations for response time\n\n## Urgency Detection\nMark as URGENT if email contains:\n- Words like 'urgent', 'critical', 'broken', 'down', 'not working'\n- Customer is Premium/Enterprise tier\n- Issue affects production systems\n\n## Common Questions (Auto-respond)\n- Password reset \u2192 Send reset link instructions\n- Billing questions \u2192 Direct to billing portal\n- Feature requests \u2192 Thank and log in tracker",
       "extracted_connectors": [
+        "@Gmail",
         "@Slack"
       ],
       "capabilities": [
-        "send_messages",
-        "notification"
+        "Monitor Gmail inbox for support emails",
+        "Auto-respond to common questions",
+        "Detect urgent issues",
+        "Post alerts to Slack #support channel",
+        "Categorize and prioritize emails"
       ],
       "configuration": {
         "model": "gpt-4.1",
         "temperature": 0.3,
         "integrations": [
-          "Slack"
+          "gmail",
+          "slack"
         ]
       },
-      "summary": "Created a sample agent with Slack integration to send notifications."
+      "summary": "Customer Support Monitor agent that watches Gmail for support emails, auto-responds to common questions, and escalates urgent issues to Slack"
     },
     "metadata": {
       "agent_name": "Agent Builder Agent",
-      "timestamp": "2024-06-18T12:00:00Z"
+      "timestamp": "2026-01-30T10:30:00Z"
     }
   },
   "is_actual_tested": true,
-  "test_timestamp": "2026-01-30T22:40:36.339857",
+  "test_timestamp": "2026-01-30T23:05:25.730623",
   "test_message_used": "Provide a sample response",
   "actual_test_response": {
-    "status": "success",
-    "result": {
-      "agent_created": true,
-      "agent_id": "sample12345",
-      "agent_name": "Sample Agent",
-      "extracted_connectors": [
-        "@Slack"
-      ],
-      "capabilities": [
-        "send_messages",
-        "notification"
-      ],
-      "configuration": {
-        "model": "gpt-4.1",
-        "temperature": 0.3,
-        "integrations": [
-          "Slack"
-        ]
-      },
-      "summary": "Created a sample agent with Slack integration to send notifications."
-    },
-    "metadata": {
-      "agent_name": "Agent Builder Agent",
-      "timestamp": "2024-06-18T12:00:00Z"
-    }
-  }
+    "raw_text": "{\n  \"status\": \"success\",\n  \"result\": {\n    \"agent_created\": true,\n    \"agent_id\": \"placeholder_id\",\n    \"agent_name\": \"Sales Lead Assistant\",\n    \"agent_role\": \"Sales Assistant\",\n    \"agent_goal\": \"Monitor Gmail for new sales leads and provide timely updates to the sales team via Slack.\",\n    \"agent_instructions\": \"You are a Sales Assistant AI agent. Your purpose is to monitor the Gmail inbox for new sales leads and ensure the sales team remains informed by posting timely and actionable updates to Slack.\n\n## Your Role\n- Monitor incoming emails in the designated sales leads Gmail inbox.\n- Identify and extract key information from new lead emails, such as contact name, company, interest area, and urgency level.\n- Summarize relevant lead details for easy review.\n- Post organized updates to the sales team in the specified Slack channel immediately when a new lead is identified.\n- Follow up on previously identified leads, providing status reminders as needed.\n\n## Tools Available\n- @Gmail: Use this connector to scan for incoming lead emails. Check inbox every 10 minutes for new messages. Extract essential information and flag high-priority leads using the 'Important' label in Gmail. Archive or categorize processed leads appropriately.\n- @Slack: Use this connector to post new lead notifications to the #sales-leads or specified Slack channel. Each update should include lead name, company, summary of inquiry, and suggested next steps. For urgent leads, use @here or @channel as appropriate to alert the team.\n\n## Response Guidelines\n- Communicate in a professional, concise, and helpful manner.\n- In Slack updates, use structured bullet points for easy scanning.\n- Highlight urgency or high-potential leads in your messages.\n- Do not share personally sensitive information unless required for sales action.\n- Avoid duplicating posts for the same lead.\n\n## Constraints\n- Only access and share information relevant to new sales leads.\n- Escalate unclear cases for human review.\n\nMaintain a proactive, detail-oriented, and reliable tone. Ensure all notifications are clear, timely, and actionable to help the sales team respond effectively.\",\n    \"extracted_connectors\": [\"@Gmail\", \"@Slack\"],\n    \"capabilities\": [\n      \"Monitor Gmail inbox for new lead emails\",\n      \"Extract key lead details\",\n      \"Summarize and categorize sales leads\",\n      \"Post updates to Slack sales channels\",\n      \"Alert team about urgent opportunities\"\n    ],\n    \"configuration\": {\n      \"model\": \"gpt-4.1\",\n      \"temperature\": 0.3,\n      \"integrations\": [\"gmail\", \"slack\"]\n    },\n    \"summary\": \"Sales Lead Assistant agent monitors Gmail for new sales leads and automatically posts organized updates to the sales team on Slack.\"\n  },\n  \"metadata\": {\n    \"agent_name\": \"Agent Builder Agent\",\n    \"timestamp\": \"2024-06-10T08:10:00Z\"\n  }\n}"
+  },
+  "test_passed": false
 }

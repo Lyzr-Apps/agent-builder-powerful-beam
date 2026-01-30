@@ -64,6 +64,9 @@ interface AgentResult {
   agent_created: boolean
   agent_id: string
   agent_name: string
+  agent_role: string
+  agent_goal: string
+  agent_instructions: string
   extracted_connectors: string[]
   capabilities: string[]
   configuration: AgentConfiguration
@@ -83,6 +86,9 @@ interface AgentBuilderResponse {
 interface LocalAgent {
   id: string
   name: string
+  role?: string
+  goal?: string
+  instructions?: string
   status: 'active' | 'inactive'
   connectors: string[]
   capabilities: string[]
@@ -481,6 +487,9 @@ function AgentCreationPanel({
         const newAgent: LocalAgent = {
           id: CHAT_ASSISTANT_ID, // Use the General Chat Assistant for testing
           name: agentData.agent_name || agentName,
+          role: agentData.agent_role,
+          goal: agentData.agent_goal,
+          instructions: agentData.agent_instructions,
           status: 'active',
           connectors: agentData.extracted_connectors || detectedConnectors,
           capabilities: agentData.capabilities || detectedCapabilities,
@@ -822,6 +831,30 @@ function AgentCard({
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-sm text-gray-600">{agent.summary}</p>
+
+        {/* Role & Goal */}
+        {agent.role && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+            <div>
+              <p className="text-xs font-semibold text-blue-700 mb-1">Role</p>
+              <p className="text-sm text-blue-900">{agent.role}</p>
+            </div>
+            {agent.goal && (
+              <div>
+                <p className="text-xs font-semibold text-blue-700 mb-1">Goal</p>
+                <p className="text-sm text-blue-900">{agent.goal}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Instructions Preview */}
+        {agent.instructions && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+            <p className="text-xs font-semibold text-gray-700 mb-1">System Prompt</p>
+            <p className="text-xs text-gray-600 line-clamp-3">{agent.instructions}</p>
+          </div>
+        )}
 
         {/* Connectors */}
         {agent.connectors.length > 0 && (

@@ -1,40 +1,15 @@
 {
   "agent_name": "Agent Builder Agent",
   "agent_id": "697d331ed36f070193f5c929",
-  "test_message": "Create a customer support agent that monitors @Slack channels for customer questions and logs important issues to @Notion database",
+  "test_message": "Create a sales assistant agent that monitors @Gmail for new leads and posts updates to @Slack",
   "expected_purpose": "custom",
-  "timestamp": "2026-01-30T22:40:22.261247",
-  "is_valid_json": true,
-  "validation_errors": [],
+  "timestamp": "2026-01-30T23:05:25.729999",
+  "is_valid_json": false,
+  "validation_errors": [
+    "Response is not valid JSON: Invalid control character at: line 9 column 220 (char 509)"
+  ],
   "actual_response": {
-    "status": "success",
-    "result": {
-      "agent_created": true,
-      "agent_id": "cs-agent-20240613-001",
-      "agent_name": "Customer Support Monitor",
-      "extracted_connectors": [
-        "@Slack",
-        "@Notion"
-      ],
-      "capabilities": [
-        "monitor_channels",
-        "detect_questions",
-        "log_issues"
-      ],
-      "configuration": {
-        "model": "gpt-4.1",
-        "temperature": 0.2,
-        "integrations": [
-          "Slack",
-          "Notion"
-        ]
-      },
-      "summary": "Created a customer support agent that monitors Slack channels for customer questions and logs important issues to a Notion database."
-    },
-    "metadata": {
-      "agent_name": "Agent Builder Agent",
-      "timestamp": "2024-06-13T11:32:47Z"
-    }
+    "raw_text": "{\n  \"status\": \"success\",\n  \"result\": {\n    \"agent_created\": true,\n    \"agent_id\": \"placeholder_id\",\n    \"agent_name\": \"Sales Lead Assistant\",\n    \"agent_role\": \"Sales Assistant\",\n    \"agent_goal\": \"Monitor Gmail for new sales leads and provide timely updates to the sales team via Slack.\",\n    \"agent_instructions\": \"You are a Sales Assistant AI agent. Your purpose is to monitor the Gmail inbox for new sales leads and ensure the sales team remains informed by posting timely and actionable updates to Slack.\n\n## Your Role\n- Monitor incoming emails in the designated sales leads Gmail inbox.\n- Identify and extract key information from new lead emails, such as contact name, company, interest area, and urgency level.\n- Summarize relevant lead details for easy review.\n- Post organized updates to the sales team in the specified Slack channel immediately when a new lead is identified.\n- Follow up on previously identified leads, providing status reminders as needed.\n\n## Tools Available\n- @Gmail: Use this connector to scan for incoming lead emails. Check inbox every 10 minutes for new messages. Extract essential information and flag high-priority leads using the 'Important' label in Gmail. Archive or categorize processed leads appropriately.\n- @Slack: Use this connector to post new lead notifications to the #sales-leads or specified Slack channel. Each update should include lead name, company, summary of inquiry, and suggested next steps. For urgent leads, use @here or @channel as appropriate to alert the team.\n\n## Response Guidelines\n- Communicate in a professional, concise, and helpful manner.\n- In Slack updates, use structured bullet points for easy scanning.\n- Highlight urgency or high-potential leads in your messages.\n- Do not share personally sensitive information unless required for sales action.\n- Avoid duplicating posts for the same lead.\n\n## Constraints\n- Only access and share information relevant to new sales leads.\n- Escalate unclear cases for human review.\n\nMaintain a proactive, detail-oriented, and reliable tone. Ensure all notifications are clear, timely, and actionable to help the sales team respond effectively.\",\n    \"extracted_connectors\": [\"@Gmail\", \"@Slack\"],\n    \"capabilities\": [\n      \"Monitor Gmail inbox for new lead emails\",\n      \"Extract key lead details\",\n      \"Summarize and categorize sales leads\",\n      \"Post updates to Slack sales channels\",\n      \"Alert team about urgent opportunities\"\n    ],\n    \"configuration\": {\n      \"model\": \"gpt-4.1\",\n      \"temperature\": 0.3,\n      \"integrations\": [\"gmail\", \"slack\"]\n    },\n    \"summary\": \"Sales Lead Assistant agent monitors Gmail for new sales leads and automatically posts organized updates to the sales team on Slack.\"\n  },\n  \"metadata\": {\n    \"agent_name\": \"Agent Builder Agent\",\n    \"timestamp\": \"2024-06-10T08:10:00Z\"\n  }\n}"
   },
-  "raw_response": "{\n  \"status\": \"success\",\n  \"result\": {\n    \"agent_created\": true,\n    \"agent_id\": \"cs-agent-20240613-001\",\n    \"agent_name\": \"Customer Support Monitor\",\n    \"extracted_connectors\": [\"@Slack\", \"@Notion\"],\n    \"capabilities\": [\"monitor_channels\", \"detect_questions\", \"log_issues\"],\n    \"configuration\": {\n      \"model\": \"gpt-4.1\",\n      \"temperature\": 0.2,\n      \"integrations\": [\"Slack\", \"Notion\"]\n    },\n    \"summary\": \"Created a customer support agent that monitors Slack channels for customer questions and logs important issues to a Notion database.\"\n  },\n  \"metadata\": {\n    \"agent_name\": \"Agent Builder Agent\",\n    \"timestamp\": \"2024-06-13T11:32:47Z\"\n  }\n}"
+  "raw_response": "{\n  \"status\": \"success\",\n  \"result\": {\n    \"agent_created\": true,\n    \"agent_id\": \"placeholder_id\",\n    \"agent_name\": \"Sales Lead Assistant\",\n    \"agent_role\": \"Sales Assistant\",\n    \"agent_goal\": \"Monitor Gmail for new sales leads and provide timely updates to the sales team via Slack.\",\n    \"agent_instructions\": \"You are a Sales Assistant AI agent. Your purpose is to monitor the Gmail inbox for new sales leads and ensure the sales team remains informed by posting timely and actionable updates to Slack.\n\n## Your Role\n- Monitor incoming emails in the designated sales leads Gmail inbox.\n- Identify and extract key information from new lead emails, such as contact name, company, interest area, and urgency level.\n- Summarize relevant lead details for easy review.\n- Post organized updates to the sales team in the specified Slack channel immediately when a new lead is identified.\n- Follow up on previously identified leads, providing status reminders as needed.\n\n## Tools Available\n- @Gmail: Use this connector to scan for incoming lead emails. Check inbox every 10 minutes for new messages. Extract essential information and flag high-priority leads using the 'Important' label in Gmail. Archive or categorize processed leads appropriately.\n- @Slack: Use this connector to post new lead notifications to the #sales-leads or specified Slack channel. Each update should include lead name, company, summary of inquiry, and suggested next steps. For urgent leads, use @here or @channel as appropriate to alert the team.\n\n## Response Guidelines\n- Communicate in a professional, concise, and helpful manner.\n- In Slack updates, use structured bullet points for easy scanning.\n- Highlight urgency or high-potential leads in your messages.\n- Do not share personally sensitive information unless required for sales action.\n- Avoid duplicating posts for the same lead.\n\n## Constraints\n- Only access and share information relevant to new sales leads.\n- Escalate unclear cases for human review.\n\nMaintain a proactive, detail-oriented, and reliable tone. Ensure all notifications are clear, timely, and actionable to help the sales team respond effectively.\",\n    \"extracted_connectors\": [\"@Gmail\", \"@Slack\"],\n    \"capabilities\": [\n      \"Monitor Gmail inbox for new lead emails\",\n      \"Extract key lead details\",\n      \"Summarize and categorize sales leads\",\n      \"Post updates to Slack sales channels\",\n      \"Alert team about urgent opportunities\"\n    ],\n    \"configuration\": {\n      \"model\": \"gpt-4.1\",\n      \"temperature\": 0.3,\n      \"integrations\": [\"gmail\", \"slack\"]\n    },\n    \"summary\": \"Sales Lead Assistant agent monitors Gmail for new sales leads and automatically posts organized updates to the sales team on Slack.\"\n  },\n  \"metadata\": {\n    \"agent_name\": \"Agent Builder Agent\",\n    \"timestamp\": \"2024-06-10T08:10:00Z\"\n  }\n}"
 }
