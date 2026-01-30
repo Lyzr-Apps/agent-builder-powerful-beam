@@ -1,0 +1,80 @@
+{
+  "workflow": {
+    "name": "Agent Builder Studio",
+    "description": "Single agent workflow for creating AI agents from natural language instructions",
+    "type": "single_agent",
+    "nodes": [
+      {
+        "id": "user_input",
+        "type": "Input",
+        "label": "Natural Language Instructions",
+        "nodeCategory": "input",
+        "position": {
+          "x": 100,
+          "y": 200
+        }
+      },
+      {
+        "id": "agent_builder_agent",
+        "type": "Agent",
+        "label": "Agent Builder Agent",
+        "nodeCategory": "agent",
+        "agent_id": "697d331ed36f070193f5c929",
+        "position": {
+          "x": 400,
+          "y": 200
+        }
+      },
+      {
+        "id": "agent_output",
+        "type": "Output",
+        "label": "Created Agent",
+        "nodeCategory": "end",
+        "position": {
+          "x": 700,
+          "y": 200
+        }
+      }
+    ],
+    "edges": [
+      {
+        "source": "user_input",
+        "target": "agent_builder_agent",
+        "id": "edge-1"
+      },
+      {
+        "source": "agent_builder_agent",
+        "target": "agent_output",
+        "id": "edge-2"
+      }
+    ]
+  },
+  "agents": [
+    {
+      "agent_id": "697d331ed36f070193f5c929",
+      "name": "Agent Builder Agent",
+      "type": "Single",
+      "description": "Interprets natural language instructions, extracts connector references (@mentions), determines agent capabilities, and calls Lyzr Studio API to create fully-configured agents with specified integrations",
+      "node_id": "agent_builder_agent",
+      "provider": "OpenAI",
+      "model": "gpt-4.1",
+      "temperature": 0.3,
+      "top_p": 1,
+      "capabilities": [
+        "Parse natural language instructions",
+        "Extract @mention connector references",
+        "Determine agent capabilities",
+        "Create agents via Lyzr Studio API"
+      ],
+      "integrations": [
+        "Lyzr Studio API (Custom Integration)"
+      ]
+    }
+  ],
+  "metadata": {
+    "created_at": "2026-01-30T00:00:00Z",
+    "total_agents": 1,
+    "total_nodes": 3,
+    "total_edges": 2
+  }
+}

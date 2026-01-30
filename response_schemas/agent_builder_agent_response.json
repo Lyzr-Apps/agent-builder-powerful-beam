@@ -1,0 +1,89 @@
+{
+  "agent_name": "Agent Builder Agent",
+  "agent_id": "697d331ed36f070193f5c929",
+  "agent_purpose": "custom",
+  "description": "Agent Builder Agent response schema based on actual test results. Creates agents from natural language instructions and extracts connector references.",
+  "response_schema": {
+    "status": "string",
+    "result": {
+      "agent_created": "boolean",
+      "agent_id": "string",
+      "agent_name": "string",
+      "extracted_connectors": [
+        "string"
+      ],
+      "capabilities": [
+        "string"
+      ],
+      "configuration": {
+        "model": "string",
+        "temperature": "number",
+        "integrations": [
+          "string"
+        ]
+      },
+      "summary": "string"
+    },
+    "metadata": {
+      "agent_name": "string",
+      "timestamp": "string"
+    }
+  },
+  "example_response": {
+    "status": "success",
+    "result": {
+      "agent_created": true,
+      "agent_id": "sample12345",
+      "agent_name": "Sample Agent",
+      "extracted_connectors": [
+        "@Slack"
+      ],
+      "capabilities": [
+        "send_messages",
+        "notification"
+      ],
+      "configuration": {
+        "model": "gpt-4.1",
+        "temperature": 0.3,
+        "integrations": [
+          "Slack"
+        ]
+      },
+      "summary": "Created a sample agent with Slack integration to send notifications."
+    },
+    "metadata": {
+      "agent_name": "Agent Builder Agent",
+      "timestamp": "2024-06-18T12:00:00Z"
+    }
+  },
+  "is_actual_tested": true,
+  "test_timestamp": "2026-01-30T22:40:36.339857",
+  "test_message_used": "Provide a sample response",
+  "actual_test_response": {
+    "status": "success",
+    "result": {
+      "agent_created": true,
+      "agent_id": "sample12345",
+      "agent_name": "Sample Agent",
+      "extracted_connectors": [
+        "@Slack"
+      ],
+      "capabilities": [
+        "send_messages",
+        "notification"
+      ],
+      "configuration": {
+        "model": "gpt-4.1",
+        "temperature": 0.3,
+        "integrations": [
+          "Slack"
+        ]
+      },
+      "summary": "Created a sample agent with Slack integration to send notifications."
+    },
+    "metadata": {
+      "agent_name": "Agent Builder Agent",
+      "timestamp": "2024-06-18T12:00:00Z"
+    }
+  }
+}

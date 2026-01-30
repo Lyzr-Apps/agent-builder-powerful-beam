@@ -1,0 +1,22 @@
+{
+  "workflow_created": true,
+  "agents": [
+    {
+      "name": "Agent Builder Agent",
+      "agent_id": "697d331ed36f070193f5c929",
+      "type": "Single",
+      "node_id": "agent_builder_agent",
+      "status": "created",
+      "provider": "OpenAI",
+      "model": "gpt-4.1",
+      "temperature": 0.3,
+      "top_p": 1,
+      "response_schema_saved": true
+    }
+  ],
+  "total_agents": 1,
+  "manager_agents": [],
+  "sub_agents": [],
+  "knowledge_bases": [],
+  "last_updated": "2026-01-30T00:00:00Z"
+}
