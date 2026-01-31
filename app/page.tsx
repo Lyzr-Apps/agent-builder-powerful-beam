@@ -102,6 +102,7 @@ interface ChatMessage {
   role: 'user' | 'agent'
   content: string
   timestamp: string
+  agentName?: string
 }
 
 // Connector data structure
@@ -979,6 +980,15 @@ export default function Home() {
   const [showChatPanel, setShowChatPanel] = useState(false)
   const [selectedAgent, setSelectedAgent] = useState<LocalAgent | null>(null)
 
+  // Central chat state
+  const [centralChatMessages, setCentralChatMessages] = useState<ChatMessage[]>([])
+  const [centralChatInput, setCentralChatInput] = useState('')
+  const [centralChatLoading, setCentralChatLoading] = useState(false)
+  const [showAgentDropdown, setShowAgentDropdown] = useState(false)
+  const [mentionPosition, setMentionPosition] = useState(0)
+  const [sessionId] = useState(() => `session-${Date.now()}`)
+  const centralChatRef = useRef<HTMLDivElement>(null)
+
   const filteredAgents = agents.filter(agent =>
     agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     agent.summary.toLowerCase().includes(searchQuery.toLowerCase())
@@ -1000,6 +1010,131 @@ export default function Home() {
   const handleCloseChatPanel = () => {
     setShowChatPanel(false)
     setSelectedAgent(null)
+  }
+
+  // Auto-scroll central chat to bottom
+  useEffect(() => {
+    if (centralChatRef.current) {
+      centralChatRef.current.scrollTop = centralChatRef.current.scrollHeight
+    }
+  }, [centralChatMessages])
+
+  // Handle central chat input with @mention detection
+  const handleCentralChatInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    const position = e.target.selectionStart || 0
+
+    setCentralChatInput(value)
+    setMentionPosition(position)
+
+    // Check if user just typed @
+    const textBeforeCursor = value.substring(0, position)
+    const lastChar = textBeforeCursor[textBeforeCursor.length - 1]
+
+    if (lastChar === '@') {
+      setShowAgentDropdown(true)
+    } else {
+      setShowAgentDropdown(false)
+    }
+  }
+
+  // Insert agent mention
+  const insertAgentMention = (agentName: string) => {
+    const before = centralChatInput.substring(0, mentionPosition)
+    const after = centralChatInput.substring(mentionPosition)
+    const newText = before + agentName + ' ' + after
+    setCentralChatInput(newText)
+    setShowAgentDropdown(false)
+  }
+
+  // Send message in central chat
+  const handleSendCentralMessage = async () => {
+    if (!centralChatInput.trim() || centralChatLoading) return
+
+    const userMessage: ChatMessage = {
+      id: `msg-${Date.now()}`,
+      role: 'user',
+      content: centralChatInput,
+      timestamp: new Date().toISOString(),
+    }
+
+    setCentralChatMessages(prev => [...prev, userMessage])
+    const messageToSend = centralChatInput
+    setCentralChatInput('')
+    setCentralChatLoading(true)
+
+    try {
+      // Extract @mentions to determine which agent to call
+      const mentions = messageToSend.match(/@[\w\s]+/g) || []
+
+      let targetAgentId = CHAT_ASSISTANT_ID
+      let targetAgentName = 'Assistant'
+
+      if (mentions.length > 0) {
+        // Find the mentioned agent
+        const mentionText = mentions[0].replace('@', '').trim()
+        const mentionedAgent = agents.find(agent =>
+          agent.name.toLowerCase() === mentionText.toLowerCase()
+        )
+
+        if (mentionedAgent) {
+          targetAgentId = mentionedAgent.id
+          targetAgentName = mentionedAgent.name
+        }
+      }
+
+      // Call the appropriate agent
+      const result = await callAIAgent(messageToSend, targetAgentId, {
+        session_id: sessionId,
+        user_id: 'user-1',
+      })
+
+      let agentContent = ''
+      if (result.success && result.response.status === 'success') {
+        if (result.response.message) {
+          agentContent = result.response.message
+        } else if (result.response.result?.text) {
+          agentContent = result.response.result.text
+        } else if (result.response.result?.answer) {
+          agentContent = result.response.result.answer
+        } else if (result.response.result?.response) {
+          agentContent = result.response.result.response
+        } else if (typeof result.response.result === 'string') {
+          agentContent = result.response.result
+        } else {
+          agentContent = JSON.stringify(result.response.result, null, 2)
+        }
+      } else {
+        agentContent = result.response?.message || result.error || 'No response from agent'
+      }
+
+      const agentMessage: ChatMessage = {
+        id: `msg-${Date.now()}-agent`,
+        role: 'agent',
+        content: agentContent,
+        timestamp: new Date().toISOString(),
+        agentName: targetAgentName,
+      }
+
+      setCentralChatMessages(prev => [...prev, agentMessage])
+    } catch (error) {
+      const errorMessage: ChatMessage = {
+        id: `msg-${Date.now()}-error`,
+        role: 'agent',
+        content: 'Error: Failed to communicate with agent',
+        timestamp: new Date().toISOString(),
+      }
+      setCentralChatMessages(prev => [...prev, errorMessage])
+    } finally {
+      setCentralChatLoading(false)
+    }
+  }
+
+  const handleCentralChatKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSendCentralMessage()
+    }
   }
 
   return (
@@ -1042,6 +1177,150 @@ export default function Home() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-12 gap-6">
+          {/* Central Chat Section */}
+          <div className="col-span-12">
+            <Card className="bg-white border-gray-200 shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-600 p-2 rounded-lg">
+                      <MessageSquare className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-gray-900 text-lg">Central Chat</CardTitle>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Type @ to mention and call any agent
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Messages */}
+                <ScrollArea className="h-[300px] rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <div ref={centralChatRef} className="space-y-3">
+                    {centralChatMessages.length === 0 && (
+                      <div className="flex flex-col items-center justify-center py-12 text-center">
+                        <div className="bg-gray-100 p-6 rounded-full mb-4">
+                          <Bot className="h-12 w-12 text-gray-400" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                          Start a conversation
+                        </h3>
+                        <p className="text-sm text-gray-600 max-w-md">
+                          Type @ and select an agent to chat with. Each agent has unique capabilities.
+                        </p>
+                      </div>
+                    )}
+
+                    {centralChatMessages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                      >
+                        <div
+                          className={`max-w-[80%] rounded-lg px-4 py-3 ${
+                            message.role === 'user'
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white border border-gray-200 text-gray-900'
+                          }`}
+                        >
+                          <div className="flex items-start gap-2">
+                            {message.role === 'agent' && (
+                              <Bot className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600" />
+                            )}
+                            <div className="flex-1">
+                              {message.role === 'agent' && message.agentName && (
+                                <p className="text-xs font-semibold text-blue-600 mb-1">
+                                  {message.agentName}
+                                </p>
+                              )}
+                              <p className="text-sm whitespace-pre-wrap break-words">
+                                {message.content}
+                              </p>
+                              <p
+                                className={`text-xs mt-1 ${
+                                  message.role === 'user'
+                                    ? 'text-blue-100'
+                                    : 'text-gray-500'
+                                }`}
+                              >
+                                {new Date(message.timestamp).toLocaleTimeString()}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    {centralChatLoading && (
+                      <div className="flex justify-start">
+                        <div className="max-w-[80%] rounded-lg px-4 py-3 bg-white border border-gray-200">
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                            <span className="text-sm text-gray-600">Agent is responding...</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+
+                {/* Input Area */}
+                <div className="relative">
+                  <div className="flex gap-2">
+                    <Input
+                      value={centralChatInput}
+                      onChange={handleCentralChatInputChange}
+                      onKeyPress={handleCentralChatKeyPress}
+                      placeholder="Type @ to mention an agent..."
+                      disabled={centralChatLoading}
+                      className="flex-1 bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
+                    />
+                    <Button
+                      onClick={handleSendCentralMessage}
+                      disabled={centralChatLoading || !centralChatInput.trim()}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      {centralChatLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+
+                  {/* Agent Dropdown */}
+                  {showAgentDropdown && agents.length > 0 && (
+                    <div className="absolute bottom-full left-0 right-0 mb-2 bg-white border border-gray-300 rounded-md shadow-lg z-10 max-h-48 overflow-auto">
+                      {agents.map((agent) => (
+                        <button
+                          key={agent.id}
+                          onClick={() => insertAgentMention(agent.name)}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-100 text-gray-900"
+                        >
+                          <Bot className="h-4 w-4 text-blue-600" />
+                          <div className="flex-1">
+                            <span className="font-medium">{agent.name}</span>
+                            {agent.role && (
+                              <span className="text-xs text-gray-500 ml-2">
+                                {agent.role}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <p className="text-xs text-gray-500 mt-2">
+                    Press Enter to send. Mention agents with @ to call them directly.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Agents Section (60%) */}
           <div className="col-span-12 lg:col-span-7">
             <div className="flex items-center justify-between mb-4">
